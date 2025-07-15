@@ -1,0 +1,47 @@
+services:
+  # PostgreSQL database service
+  postgres:
+    image: postgres:16
+    container_name: axebase-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: axebase
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Development backend service (uncomment when needed)
+  # backend:
+  #   build:
+  #     context: ./backend
+  #   container_name: axebase-backend
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - postgres
+  #   environment:
+  #     DATABASE_URL: postgres://postgres:postgres@postgres:5432/axebase
+  #     JWT_SECRET: your-development-jwt-secret
+  #     BIND_ADDR: 0.0.0.0:3000
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./backend:/app
+
+  # Development frontend service (uncomment when needed)
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #   container_name: axebase-frontend
+  #   restart: unless-stopped
+  #   environment:
+  #     VITE_API_URL: http://localhost:3000
+  #   ports:
+  #     - "5173:5173"
+  #   volumes:
+  #     - ./frontend:/app
+
+volumes:
+  postgres_data:
