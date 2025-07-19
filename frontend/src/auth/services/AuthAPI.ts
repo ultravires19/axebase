@@ -16,6 +16,13 @@ const API_BASE_URL = "http://localhost:3000";
 const TOKEN_STORAGE_KEY = "auth_token";
 const REFRESH_TOKEN_STORAGE_KEY = "auth_refresh_token";
 
+interface ApiErrorResponse {
+  error?: {
+    type?: string;
+    message?: string;
+  };
+}
+
 export class AuthApi implements AuthService {
   // For storing auth state change listeners
   private static authStateListeners: ((user: AuthUser | null) => void)[] = [];
@@ -35,9 +42,7 @@ export class AuthApi implements AuthService {
 
     if (!response.ok) {
       const errorData = await response.json();
-      const errorType = errorData.error?.type || "unknown_error";
-      const errorMessage = errorData.error?.message || "Registration failed";
-      throw new Error(`${errorType}: ${errorMessage}`);
+      throw AuthApi.parseApiError(errorData, "Registration failed");
     }
 
     const result = await response.json();
@@ -69,9 +74,7 @@ export class AuthApi implements AuthService {
 
     if (!response.ok) {
       const errorData = await response.json();
-      const errorType = errorData.error?.type || "unknown_error";
-      const errorMessage = errorData.error?.message || "Login failed";
-      throw new Error(`${errorType}: ${errorMessage}`);
+      throw AuthApi.parseApiError(errorData, "Login failed");
     }
 
     const result = await response.json();
@@ -199,10 +202,11 @@ export class AuthApi implements AuthService {
 
     if (!response.ok) {
       const errorData = await response.json();
-      const errorType = errorData.error?.type || "unknown_error";
-      const errorMessage =
-        errorData.error?.message || "Failed to request password reset";
-      throw new Error(`${errorType}: ${errorMessage}`);
+
+      throw AuthApi.parseApiError(
+        errorData,
+        "Failed to request password reset",
+      );
     }
 
     return Promise.resolve();
@@ -244,10 +248,7 @@ export class AuthApi implements AuthService {
 
     if (!response.ok) {
       const errorData = await response.json();
-      const errorType = errorData.error?.type || "unknown_error";
-      const errorMessage =
-        errorData.error?.message || "Failed to reset password";
-      throw new Error(`${errorType}: ${errorMessage}`);
+      throw AuthApi.parseApiError(errorData, "Failed to reset password");
     }
 
     return Promise.resolve();
@@ -274,10 +275,10 @@ export class AuthApi implements AuthService {
 
     if (!response.ok) {
       const errorData = await response.json();
-      const errorType = errorData.error?.type || "unknown_error";
-      const errorMessage =
-        errorData.error?.message || "Failed to send verification email";
-      throw new Error(`${errorType}: ${errorMessage}`);
+      throw AuthApi.parseApiError(
+        errorData,
+        "Failed to send verification email",
+      );
     }
 
     return Promise.resolve();
@@ -300,10 +301,7 @@ export class AuthApi implements AuthService {
 
     if (!response.ok) {
       const errorData = await response.json();
-      const errorType = errorData.error?.type || "unknown_error";
-      const errorMessage =
-        errorData.error?.message || "Email verification failed";
-      throw new Error(`${errorType}: ${errorMessage}`);
+      throw AuthApi.parseApiError(errorData, "Failed to verify email");
     }
 
     // Get current user and update with verified status
@@ -346,6 +344,18 @@ export class AuthApi implements AuthService {
         AuthApi.authStateListeners.splice(index, 1);
       }
     };
+  }
+
+  /**
+   * Helper function to parse API errors
+   */
+  private static parseApiError(
+    errorData: ApiErrorResponse,
+    defaultMessage: string,
+  ): Error {
+    const errorType = errorData.error?.type || "unknown_error";
+    const errorMessage = errorData.error?.message || defaultMessage;
+    return new Error(`${errorType}: ${errorMessage}`);
   }
 
   /**
@@ -394,16 +404,8 @@ export class AuthApi implements AuthService {
       localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
 
       // Parse the error response
-      try {
-        const errorData = await response.json();
-        const errorType = errorData.error?.type || "unknown_error";
-        const errorMessage =
-          errorData.error?.message || "Failed to refresh token";
-        throw new Error(`${errorType}: ${errorMessage}`);
-      } catch (parseError) {
-        // If we can't parse the response, throw a generic error
-        throw new Error("token_error: Failed to refresh token");
-      }
+      const errorData = await response.json();
+      throw AuthApi.parseApiError(errorData, "Failed to refresh token");
     }
 
     const result = await response.json();
